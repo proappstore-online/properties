@@ -122,7 +122,7 @@ function PublicShell({ children }: { children: ReactNode }) {
 const NAV: NavItem[] = [
   { label: 'Browse', href: '#/' },
   { label: 'Saved', href: '#/saved' },
-  { label: REQUEST.plural[0]!.toUpperCase() + REQUEST.plural.slice(1), href: '#/requests' },
+  { label: REQUEST.title, href: '#/requests' },
   { label: 'Inbox', href: '#/inbox' },
   { label: 'My listings', href: '#/mine' },
   { label: 'Messages', href: '#/messages' },

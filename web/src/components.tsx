@@ -42,14 +42,15 @@ export function Stars({ rating }: { rating: number }) {
   )
 }
 
-export function Status({ value }: { value: string }) {
+/** A status pill. `label` is the words on screen; `value` is the stored status that picks the colour. */
+export function Status({ value, label }: { value: string; label?: string }) {
   const tone: Record<string, string> = {
     active: 'var(--success)', accepted: 'var(--success)', completed: 'var(--sky)',
     pending: 'var(--warning)', paused: 'var(--muted)', declined: 'var(--danger)', cancelled: 'var(--muted)', archived: 'var(--muted)',
   }
   return (
     <span className="rounded-full border px-2 py-0.5 text-xs font-semibold" style={{ color: tone[value] ?? 'var(--muted)', borderColor: 'var(--line)' }}>
-      {value}
+      {label ?? value}
     </span>
   )
 }

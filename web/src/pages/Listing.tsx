@@ -42,7 +42,7 @@ export function ListingPage({ id }: { id: string }) {
     const changes = await x('create_request', { id: crypto.randomUUID(), listing_id: id, requester_name: user.name, note })
     setAsking(false)
     setNote('')
-    setFlash(changes ? `${REQUEST.verb} sent. The owner will see it in their inbox.` : `Could not send: you may already have an open ${REQUEST.noun} here.`)
+    setFlash(changes ? `${REQUEST.sent}. The owner will see it in their inbox.` : 'Could not send: you may already have one open here.')
   }
 
   async function submitReview() {
@@ -77,7 +77,7 @@ export function ListingPage({ id }: { id: string }) {
         {mine ? <Button variant="secondary" onClick={() => { location.hash = `#/mine/${id}/edit` }}>Edit listing</Button> : null}
         {!mine && signedIn ? <Button onClick={() => setAsking(true)}>{REQUEST.verb}</Button> : null}
         {!mine && signedIn ? <Button variant="secondary" onClick={() => { location.hash = `#/messages/${id}/${listing.owner_id}` }}>Message owner</Button> : null}
-        {!mine && !signedIn ? <Button onClick={() => app.auth.signIn()}>Sign in to {REQUEST.noun}</Button> : null}
+        {!mine && !signedIn ? <Button onClick={() => app.auth.signIn()}>Sign in to {REQUEST.verb.toLowerCase()}</Button> : null}
         {reviewable.length ? <Button variant="secondary" onClick={() => setReviewing(true)}>Leave a review</Button> : null}
         {!mine && signedIn ? <a href="#/settings" className="self-center text-xs text-[var(--muted)] underline-offset-4 hover:underline">Block or report this owner</a> : null}
       </div>

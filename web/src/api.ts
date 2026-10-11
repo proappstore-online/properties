@@ -5,10 +5,10 @@ import { initPro } from '@proappstore/sdk'
 export const app = initPro({ appId: 'properties', authMode: 'platform-cookie' })
 
 /**
- * Extension points. The archetype is "owners publish listings, seekers request them";
- * the noun each side uses is yours to pick (booking, application, enquiry, match…).
+ * Extension points. The archetype is "owners publish listings, seekers enquire about them";
+ * the words each side uses are yours to pick (booking, application, enquiry, match…).
  */
-export const REQUEST = { noun: 'request', plural: 'requests', verb: 'Request' } as const
+export { REQUEST, REQUEST_STATUS_LABEL, requestStatusLabel } from './requestWording'
 /** Extension point: the property types, defined in propertyTypes.ts (the write actions in mcp.json must list the same slugs). */
 export { CATEGORIES, categoryLabel, isCategory, type CategoryValue } from './propertyTypes'
 /** Optional map capability: geocode a listing's location on save and show it on the detail page. */

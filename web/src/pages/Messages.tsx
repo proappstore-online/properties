@@ -8,7 +8,7 @@ export function Conversations() {
   useEffect(() => { q<Conversation>('list_conversations').then(setRows) }, [])
   return (
     <Section title="Messages">
-      {rows && rows.length === 0 ? <Empty title="No conversations" description="Message an owner from a listing, or reply to a request from your inbox." /> : null}
+      {rows && rows.length === 0 ? <Empty title="No conversations" description="Message an owner from a listing, or reply from your inbox." /> : null}
       <ul className="space-y-2">
         {(rows ?? []).map((c) => (
           <li key={`${c.listing_id}:${c.other_id}`}>

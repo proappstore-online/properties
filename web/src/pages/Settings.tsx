@@ -1,6 +1,6 @@
 import { useEffect, useState, type FormEvent } from 'react'
 import { Button, Input } from '@proappstore/sdk/ui'
-import { app, q, x, when } from '../api'
+import { app, q, x, when, REQUEST } from '../api'
 import { Field, Section, TextArea } from '../components'
 
 /**
@@ -20,7 +20,7 @@ export function Settings() {
   async function block(e: FormEvent) {
     e.preventDefault()
     const changes = await x('block_user', { blocked_id: target.trim() })
-    setFlash(changes ? 'Blocked. They can no longer message you or request your listings.' : 'Nothing changed.')
+    setFlash(changes ? `Blocked. They can no longer message you or make ${REQUEST.plural} on your listings.` : 'Nothing changed.')
     setTarget('')
     await load()
   }
@@ -34,7 +34,7 @@ export function Settings() {
 
   return (
     <Section title="Settings">
-      <p className="text-sm text-[var(--muted)]">Signed in as <strong className="text-[var(--ink)]">{app.auth.user?.name}</strong>. Your listings, requests and messages are the only data this app keeps about you; archive listings to take them off the catalogue.</p>
+      <p className="text-sm text-[var(--muted)]">Signed in as <strong className="text-[var(--ink)]">{app.auth.user?.name}</strong>. Your listings, {REQUEST.plural} and messages are the only data this app keeps about you; archive listings to take them off the catalogue.</p>
 
       <h2 className="display-font mt-8 text-xl font-semibold text-[var(--ink)]">Block or report</h2>
       <form className="mt-3 max-w-xl space-y-3" onSubmit={block}>

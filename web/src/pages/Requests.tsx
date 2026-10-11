@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import { Button } from '@proappstore/sdk/ui'
-import { q, x, when, REQUEST, type Request } from '../api'
+import { q, x, when, REQUEST, requestStatusLabel, type Request } from '../api'
 import { Empty, Section, Status } from '../components'
 
 export function MyRequests() {
@@ -24,9 +24,9 @@ export function MyRequests() {
               <p className="text-xs text-[var(--muted)]">{when(r.created_at)}{r.note ? ` · “${r.note}”` : ''}</p>
             </div>
             <div className="flex items-center gap-2">
-              <Status value={r.status} />
+              <Status value={r.status} label={requestStatusLabel(r.status)} />
               {r.owner_id ? <Button variant="ghost" size="sm" onClick={() => { location.hash = `#/messages/${r.listing_id}/${r.owner_id}` }}>Message</Button> : null}
-              {r.status === 'pending' || r.status === 'accepted' ? <Button variant="danger" size="sm" onClick={() => cancel(r)}>Cancel</Button> : null}
+              {r.status === 'pending' || r.status === 'accepted' ? <Button variant="danger" size="sm" onClick={() => cancel(r)}>Withdraw</Button> : null}
             </div>
           </li>
         ))}
@@ -49,7 +49,7 @@ export function Inbox() {
 
   return (
     <Section title="Inbox">
-      {rows && rows.length === 0 ? <Empty title="No incoming requests" description="Requests on your listings show up here." /> : null}
+      {rows && rows.length === 0 ? <Empty title={`No incoming ${REQUEST.plural}`} description={`${REQUEST.title} on your listings show up here.`} /> : null}
       <ul className="space-y-3">
         {(rows ?? []).map((r) => (
           <li key={r.id} className="flex flex-wrap items-center justify-between gap-3 rounded-[var(--radius-sm)] border border-[var(--line)] p-3">
@@ -58,10 +58,10 @@ export function Inbox() {
               <p className="text-xs text-[var(--muted)]">{when(r.created_at)}{r.note ? ` · “${r.note}”` : ''}</p>
             </div>
             <div className="flex items-center gap-2">
-              <Status value={r.status} />
+              <Status value={r.status} label={requestStatusLabel(r.status)} />
               <Button variant="ghost" size="sm" onClick={() => { location.hash = `#/messages/${r.listing_id}/${r.requester_id}` }}>Message</Button>
               {r.status === 'pending' ? <><Button size="sm" onClick={() => move(r, 'accepted')}>Accept</Button><Button variant="danger" size="sm" onClick={() => move(r, 'declined')}>Decline</Button></> : null}
-              {r.status === 'accepted' ? <><Button size="sm" onClick={() => move(r, 'completed')}>Mark completed</Button><Button variant="danger" size="sm" onClick={() => move(r, 'declined')}>Decline</Button></> : null}
+              {r.status === 'accepted' ? <><Button size="sm" onClick={() => move(r, 'completed')}>Close</Button><Button variant="danger" size="sm" onClick={() => move(r, 'declined')}>Decline</Button></> : null}
             </div>
           </li>
         ))}
