@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import { Button, Modal } from '@proappstore/sdk/ui'
-import { app, pub, q, x, features, images, imageUrl, money, when, MAPS_ENABLED, REQUEST, type Listing, type Review } from '../api'
+import { app, pub, q, x, categoryLabel, features, images, imageUrl, money, when, MAPS_ENABLED, REQUEST, type Listing, type Review } from '../api'
 import { Empty, Field, Section, Stars, TextArea } from '../components'
 import { useSaved } from './Browse'
 
@@ -64,7 +64,7 @@ export function ListingPage({ id }: { id: string }) {
           {photos.map((k) => <img key={k} src={imageUrl(k)} alt="" className="aspect-[4/3] w-full rounded-[var(--radius-sm)] object-cover" />)}
         </div>
       ) : null}
-      <p className="text-sm text-[var(--muted)]">{[listing.category, listing.suburb || listing.location].filter(Boolean).join(' · ')} · by {listing.owner_name || 'the owner'} · listed {when(listing.created_at)}</p>
+      <p className="text-sm text-[var(--muted)]">{[categoryLabel(listing.category), listing.suburb || listing.location].filter(Boolean).join(' · ')} · by {listing.owner_name || 'the owner'} · listed {when(listing.created_at)}</p>
       <p className="mt-1 text-lg font-semibold text-[var(--ink)]">{money(listing)}</p>
       {features(listing) ? <p className="mt-1 text-sm text-[var(--ink)]">{features(listing)}</p> : null}
       {stats.review_count ? <p className="mt-1 text-sm"><Stars rating={stats.avg_rating ?? 0} /> <span className="text-[var(--muted)]">{stats.review_count} review{stats.review_count === 1 ? '' : 's'}</span></p> : null}

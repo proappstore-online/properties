@@ -9,7 +9,8 @@ export const app = initPro({ appId: 'properties', authMode: 'platform-cookie' })
  * the noun each side uses is yours to pick (booking, application, enquiry, match…).
  */
 export const REQUEST = { noun: 'request', plural: 'requests', verb: 'Request' } as const
-export const CATEGORIES = ['room', 'job', 'service', 'vehicle', 'other'] as const
+/** Extension point: the property types, defined in propertyTypes.ts (the write actions in mcp.json must list the same slugs). */
+export { CATEGORIES, categoryLabel, isCategory, type CategoryValue } from './propertyTypes'
 /** Optional map capability: geocode a listing's location on save and show it on the detail page. */
 export const MAPS_ENABLED = false
 

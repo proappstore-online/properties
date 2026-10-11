@@ -164,9 +164,9 @@
     },
     {
       "name": "create_listing",
-      "description": "Publish a listing owned by the caller. Idempotent under retry: the client supplies the id and a repeat is ignored (meta.changes = 0). Refused the same way (meta.changes = 0) when price_unit is not per_week or sale, or a price or count is negative.",
+      "description": "Publish a listing owned by the caller. Idempotent under retry: the client supplies the id and a repeat is ignored (meta.changes = 0). Refused the same way (meta.changes = 0) when price_unit is not per_week or sale, the category is not a property type, or a price or count is negative.",
       "operation": "execute",
-      "sql": "INSERT OR IGNORE INTO listings (id, owner_id, owner_name, status, title, description, category, location, suburb, lat, lng, price, price_unit, bedrooms, bathrooms, car_spaces, images, created_at, updated_at) SELECT :id, :__user_id, :owner_name, 'active', :title, :description, :category, :location, :suburb, :lat, :lng, :price, :price_unit, :bedrooms, :bathrooms, :car_spaces, :images, :__now, :__now WHERE :price_unit IN ('per_week', 'sale') AND (:price IS NULL OR :price >= 0) AND (:bedrooms IS NULL OR (:bedrooms >= 0 AND :bedrooms = CAST(:bedrooms AS INTEGER))) AND (:bathrooms IS NULL OR (:bathrooms >= 0 AND :bathrooms = CAST(:bathrooms AS INTEGER))) AND (:car_spaces IS NULL OR (:car_spaces >= 0 AND :car_spaces = CAST(:car_spaces AS INTEGER)))",
+      "sql": "INSERT OR IGNORE INTO listings (id, owner_id, owner_name, status, title, description, category, location, suburb, lat, lng, price, price_unit, bedrooms, bathrooms, car_spaces, images, created_at, updated_at) SELECT :id, :__user_id, :owner_name, 'active', :title, :description, :category, :location, :suburb, :lat, :lng, :price, :price_unit, :bedrooms, :bathrooms, :car_spaces, :images, :__now, :__now WHERE :price_unit IN ('per_week', 'sale') AND (:price IS NULL OR :price >= 0) AND (:bedrooms IS NULL OR (:bedrooms >= 0 AND :bedrooms = CAST(:bedrooms AS INTEGER))) AND (:bathrooms IS NULL OR (:bathrooms >= 0 AND :bathrooms = CAST(:bathrooms AS INTEGER))) AND (:car_spaces IS NULL OR (:car_spaces >= 0 AND :car_spaces = CAST(:car_spaces AS INTEGER))) AND :category IN ('house', 'apartment', 'townhouse', 'studio', 'room_share', 'land', 'other')",
       "params": {
         "id": {
           "type": "string",
@@ -187,8 +187,8 @@
         },
         "category": {
           "type": "string",
-          "description": "Category",
-          "default": ""
+          "description": "Property type: house, apartment, townhouse, studio, room_share, land or other",
+          "default": "other"
         },
         "location": {
           "type": "string",
@@ -245,9 +245,9 @@
     },
     {
       "name": "update_listing",
-      "description": "Edit one of the caller's own listings. Refused (meta.changes = 0) when price_unit is not per_week or sale, or a price or count is negative.",
+      "description": "Edit one of the caller's own listings. Refused (meta.changes = 0) when price_unit is not per_week or sale, the category is not a property type, or a price or count is negative.",
       "operation": "execute",
-      "sql": "UPDATE listings SET title = :title, description = :description, category = :category, location = :location, suburb = :suburb, lat = :lat, lng = :lng, price = :price, price_unit = :price_unit, bedrooms = :bedrooms, bathrooms = :bathrooms, car_spaces = :car_spaces, images = :images, updated_at = :__now WHERE id = :id AND owner_id = :__user_id AND :price_unit IN ('per_week', 'sale') AND (:price IS NULL OR :price >= 0) AND (:bedrooms IS NULL OR (:bedrooms >= 0 AND :bedrooms = CAST(:bedrooms AS INTEGER))) AND (:bathrooms IS NULL OR (:bathrooms >= 0 AND :bathrooms = CAST(:bathrooms AS INTEGER))) AND (:car_spaces IS NULL OR (:car_spaces >= 0 AND :car_spaces = CAST(:car_spaces AS INTEGER)))",
+      "sql": "UPDATE listings SET title = :title, description = :description, category = :category, location = :location, suburb = :suburb, lat = :lat, lng = :lng, price = :price, price_unit = :price_unit, bedrooms = :bedrooms, bathrooms = :bathrooms, car_spaces = :car_spaces, images = :images, updated_at = :__now WHERE id = :id AND owner_id = :__user_id AND :price_unit IN ('per_week', 'sale') AND (:price IS NULL OR :price >= 0) AND (:bedrooms IS NULL OR (:bedrooms >= 0 AND :bedrooms = CAST(:bedrooms AS INTEGER))) AND (:bathrooms IS NULL OR (:bathrooms >= 0 AND :bathrooms = CAST(:bathrooms AS INTEGER))) AND (:car_spaces IS NULL OR (:car_spaces >= 0 AND :car_spaces = CAST(:car_spaces AS INTEGER))) AND :category IN ('house', 'apartment', 'townhouse', 'studio', 'room_share', 'land', 'other')",
       "params": {
         "id": {
           "type": "string",
@@ -264,8 +264,8 @@
         },
         "category": {
           "type": "string",
-          "description": "Category",
-          "default": ""
+          "description": "Property type: house, apartment, townhouse, studio, room_share, land or other",
+          "default": "other"
         },
         "location": {
           "type": "string",

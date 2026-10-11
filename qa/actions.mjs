@@ -73,7 +73,7 @@ for (const t of Object.values(TOOLS).filter((t) => t.requires_auth === false)) {
 }
 
 // --- Listings -------------------------------------------------------------------------------
-ok(call('create_listing', OWNER, { id: L, owner_name: 'Olive', title: 'Sunny room', category: 'room', price: 40, price_unit: 'per_week' }) === 1, 'owner publishes a listing')
+ok(call('create_listing', OWNER, { id: L, owner_name: 'Olive', title: 'Sunny room', category: 'room_share', price: 40, price_unit: 'per_week' }) === 1, 'owner publishes a listing')
 ok(call('create_listing', OWNER, { id: L, owner_name: 'Olive', title: 'Sunny room again' }) === 0, 'create_listing is idempotent by client id')
 ok(call('update_listing', STRANGER, { id: L, title: 'Hijacked' }) === 0, 'a stranger cannot edit it')
 ok(call('set_listing_status', STRANGER, { id: L, status: 'archived' }) === 0, 'a stranger cannot archive it')
@@ -190,6 +190,20 @@ ok(browseProperties({ suburb: 'Richmond', price_unit: 'sale', min_bedrooms: 3 })
 ok(browseProperties({ suburb: 'Nowhere' }).length === 0, 'a suburb with no listings returns an empty page')
 ok(call('search_listings', null, { q: 'home', suburb: 'Richmond' }).map((row) => row.id).join() === 'p-d', 'text search composes with the suburb filter')
 ok(call('list_my_favorites', SEEKER).some((row) => row.id === L && row.suburb === ''), 'saved listings carry the property fields')
+
+// --- Property categories (P2) ---------------------------------------------------------------
+ok(call('create_listing', OWNER, { id: 'c-old', owner_name: 'Olive', title: 'Old type', category: 'room' }) === 0, 'create refuses the retired marketplace category room')
+ok(call('create_listing', OWNER, { id: 'c-x', owner_name: 'Olive', title: 'Vehicle', category: 'vehicle' }) === 0, 'create refuses a category that is not a property type')
+ok(db.prepare("SELECT COUNT(*) AS n FROM listings WHERE id LIKE 'c-%'").get().n === 0, 'refused categories leave no rows behind')
+ok(call('create_listing', OWNER, { id: 'c-default', owner_name: 'Olive', title: 'No type given' }) === 1 && call('get_listing', null, { id: 'c-default' })[0]?.category === 'other', 'a listing with no category is filed as other')
+ok(call('update_listing', OWNER, { id: 'p-flat', title: 'Fitzroy flat', category: 'job' }) === 0, 'update refuses a category that is not a property type')
+ok(call('update_listing', STRANGER, { id: 'p-flat', title: 'Fitzroy flat', category: 'townhouse' }) === 0, 'a stranger cannot change the property type')
+ok(call('update_listing', OWNER, { id: 'p-flat', title: 'Fitzroy flat', category: 'townhouse', price_unit: 'per_week', bedrooms: 3, bathrooms: 1, car_spaces: 1, price: 680, suburb: 'Fitzroy North' }) === 1, 'owner sets a property type')
+ok(call('get_listing', null, { id: 'p-flat' })[0]?.category === 'townhouse', 'the public sees the property type')
+db.prepare("INSERT INTO listings (id, owner_id, owner_name, status, title, description, category, price_unit, created_at, updated_at) VALUES ('legacy-2', ?, 'Olive', 'active', 'Old job ad', '', 'job', '', 1, 1)").run(OWNER)
+ok(call('get_listing', null, { id: 'legacy-2' })[0]?.category === 'job', 'a listing filed under a retired category still reads back, for the UI to show as Other')
+ok(call('list_listings', null, { category: 'townhouse' }).some((row) => row.id === 'p-flat'), 'the catalogue filters on the property type')
+ok(call('search_listings', null, { q: 'Fitzroy', category: 'townhouse', suburb: 'north' }).map((row) => row.id).join() === 'p-flat', 'the property type filter composes with text search and the suburb filter')
 
 console.log(failures ? `\n${failures} failing` : '\nall passing')
 process.exit(failures ? 1 : 0)

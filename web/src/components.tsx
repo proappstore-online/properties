@@ -1,6 +1,6 @@
 import type { ReactNode, TextareaHTMLAttributes } from 'react'
 import { Card } from '@proappstore/sdk/ui'
-import { features, images, imageUrl, money, type Listing } from './api'
+import { categoryLabel, features, images, imageUrl, money, type Listing } from './api'
 
 export function Section({ title, action, children }: { title: string; action?: ReactNode; children: ReactNode }) {
   return (
@@ -78,7 +78,7 @@ export function ListingCard({ listing, saved, onToggleSave }: { listing: Listing
               </button>
             ) : null}
           </div>
-          <p className="mt-1 text-sm text-[var(--muted)]">{[listing.category, listing.suburb || listing.location].filter(Boolean).join(' · ')}</p>
+          <p className="mt-1 text-sm text-[var(--muted)]">{[categoryLabel(listing.category), listing.suburb || listing.location].filter(Boolean).join(' · ')}</p>
           <p className="mt-2 text-sm font-semibold text-[var(--ink)]">{money(listing)}</p>
           {features(listing) ? <p className="mt-1 text-sm text-[var(--muted)]">{features(listing)}</p> : null}
         </div>

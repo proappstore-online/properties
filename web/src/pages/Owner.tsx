@@ -1,6 +1,6 @@
 import { useEffect, useState, type FormEvent } from 'react'
 import { Button, Input } from '@proappstore/sdk/ui'
-import { app, q, x, images, imageUrl, uploadPhoto, money, CATEGORIES, MAPS_ENABLED, PRICE_UNITS, type Listing, type PriceUnit } from '../api'
+import { app, q, x, categoryLabel, images, imageUrl, isCategory, uploadPhoto, money, CATEGORIES, MAPS_ENABLED, PRICE_UNITS, type CategoryValue, type Listing, type PriceUnit } from '../api'
 import { Empty, Field, Section, Status, TextArea } from '../components'
 
 export function OwnerDashboard() {
@@ -21,7 +21,7 @@ export function OwnerDashboard() {
           <li key={l.id} className="flex flex-wrap items-center justify-between gap-3 rounded-[var(--radius-sm)] border border-[var(--line)] p-3">
             <div>
               <a href={`#/l/${l.id}`} className="font-semibold text-[var(--ink)] hover:underline">{l.title}</a>
-              <p className="text-xs text-[var(--muted)]">{[l.category, l.location, money(l)].filter(Boolean).join(' · ')}</p>
+              <p className="text-xs text-[var(--muted)]">{[categoryLabel(l.category), l.location, money(l)].filter(Boolean).join(' · ')}</p>
             </div>
             <div className="flex items-center gap-2">
               <Status value={l.status} />
@@ -38,11 +38,11 @@ export function OwnerDashboard() {
 }
 
 type Draft = {
-  title: string; description: string; category: string; location: string; suburb: string
+  title: string; description: string; category: CategoryValue; location: string; suburb: string
   price: string; price_unit: PriceUnit; bedrooms: string; bathrooms: string; car_spaces: string; images: string[]
 }
 const EMPTY: Draft = {
-  title: '', description: '', category: CATEGORIES[0], location: '', suburb: '',
+  title: '', description: '', category: 'house', location: '', suburb: '',
   price: '', price_unit: 'per_week', bedrooms: '', bathrooms: '', car_spaces: '', images: [],
 }
 
@@ -68,7 +68,9 @@ export function ListingForm({ id }: { id?: string }) {
     q<Listing>('get_my_listing', { id }).then(([l]) => {
       if (!l) { location.hash = '#/mine'; return }
       setDraft({
-        title: l.title, description: l.description, category: l.category, location: l.location, suburb: l.suburb,
+        title: l.title, description: l.description,
+        // Old or unknown categories open as Other, the same fallback the cards use.
+        category: isCategory(l.category) ? l.category : 'other', location: l.location, suburb: l.suburb,
         price: l.price === null ? '' : String(l.price),
         // Listings published before the price periods existed carry free text; they open on weekly rent.
         price_unit: isPriceUnit(l.price_unit) ? l.price_unit : 'per_week',
@@ -134,8 +136,8 @@ export function ListingForm({ id }: { id?: string }) {
         <Field label="Description"><TextArea aria-label="Description" rows={6} maxLength={4000} value={draft.description} onChange={(e) => set({ description: e.target.value })} /></Field>
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
           <Field label="Category">
-            <select aria-label="Category" value={draft.category} onChange={(e) => set({ category: e.target.value })} className="w-full rounded-[var(--radius-sm)] border border-[var(--line-strong)] bg-[var(--panel-strong)] px-3 py-2 text-sm text-[var(--ink)]">
-              {CATEGORIES.map((c) => <option key={c} value={c}>{c}</option>)}
+            <select aria-label="Category" value={draft.category} onChange={(e) => set({ category: e.target.value as CategoryValue })} className="w-full rounded-[var(--radius-sm)] border border-[var(--line-strong)] bg-[var(--panel-strong)] px-3 py-2 text-sm text-[var(--ink)]">
+              {CATEGORIES.map((c) => <option key={c.value} value={c.value}>{c.label}</option>)}
             </select>
           </Field>
           <Field label="Location"><Input aria-label="Location" placeholder="Street address or landmark" value={draft.location} onChange={(e) => set({ location: e.target.value })} /></Field>

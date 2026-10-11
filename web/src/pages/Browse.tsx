@@ -105,7 +105,7 @@ export function Browse() {
         <div className="min-w-48 flex-1"><Input aria-label="Search" placeholder="Search title, description or location" value={query} onChange={(e) => setQuery(e.target.value)} /></div>
         <select aria-label="Category" value={category} onChange={(e) => setCategory(e.target.value)} className="rounded-[var(--radius-sm)] border border-[var(--line-strong)] bg-[var(--panel-strong)] px-3 py-2 text-sm text-[var(--ink)]">
           <option value="">All categories</option>
-          {CATEGORIES.map((c) => <option key={c} value={c}>{c}</option>)}
+          {CATEGORIES.map((c) => <option key={c.value} value={c.value}>{c.label}</option>)}
         </select>
         <Button type="submit" variant="secondary">Search</Button>
         <div className="flex w-full flex-wrap gap-2">
