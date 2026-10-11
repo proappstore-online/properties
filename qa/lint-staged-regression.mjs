@@ -50,7 +50,7 @@ try {
   const appName = 'tradies'
   for (const relative of ['package.json', 'web/package.json']) {
     const path = join(fixture, relative)
-    writeFileSync(path, readFileSync(path, 'utf8').replaceAll('APPNAME', appName))
+    writeFileSync(path, readFileSync(path, 'utf8').replaceAll('properties', appName))
   }
 
   mustSucceed('git', ['init'])

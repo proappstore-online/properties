@@ -144,7 +144,7 @@ describe('marketplace rendered integration', () => {
     await mount()
     await waitFor(() => expect(container.querySelector('[data-screen="settings"]')).not.toBeNull())
 
-    expect(container.textContent).toContain('APPNAME')
+    expect(container.textContent).toContain('properties')
     expect(container.textContent).not.toContain('ProAppStore')
     expect(container.querySelector('[href="https://proappstore.online"]')).toBeNull()
     expect(container.querySelector('footer.pas-footer')).toBeNull()

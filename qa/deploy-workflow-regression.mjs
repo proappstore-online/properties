@@ -1,5 +1,5 @@
 /**
- * The canonical template deliberately retains APPNAME placeholders, so its
+ * The canonical template deliberately retains properties placeholders, so its
  * deploy workflow must skip only this repository. Apps instantiated from the
  * template retain the same workflow but have a different repository name and
  * must still deploy with all of the normal fail-closed checks.
@@ -22,7 +22,7 @@ function assert(condition, message) {
 assert(guard, 'deploy job has an explicit canonical-template guard')
 assert(
   guard.includes(`github.event.repository.name != '${canonical}'`),
-  'the canonical marketplace template is skipped before its APPNAME placeholder check',
+  'the canonical marketplace template is skipped before its properties placeholder check',
 )
 assert(
   guard.includes("github.event.repository.name != 'template-app'"),

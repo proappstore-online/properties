@@ -35,8 +35,8 @@ export default defineConfig({
         ],
       },
       manifest: {
-        name: 'APPNAME',
-        short_name: 'APPNAME',
+        name: 'properties',
+        short_name: 'properties',
         description: 'Browse listings, save favourites, send requests and message owners.',
         start_url: '/',
         scope: '/',

@@ -1,17 +1,17 @@
 {
-  "name": "APPNAME",
+  "name": "properties",
   "private": true,
   "packageManager": "pnpm@10.30.3",
   "engines": { "node": ">=22" },
   "pnpm": { "onlyBuiltDependencies": ["esbuild"] },
   "scripts": {
-    "dev": "pnpm --filter @APPNAME/web dev",
+    "dev": "pnpm --filter @properties/web dev",
     "prebuild": "npx -y @proappstore/cli@latest check",
-    "build": "pnpm --filter @APPNAME/web build",
-    "preview": "pnpm --filter @APPNAME/web preview",
+    "build": "pnpm --filter @properties/web build",
+    "preview": "pnpm --filter @properties/web preview",
     "lint": "echo 'Lint configured per app; extend .lintstagedrc.js with eslint/prettier'",
-    "typecheck": "pnpm --filter @APPNAME/web exec tsc -b",
-    "test": "pnpm --filter @APPNAME/web exec tsc -b && pnpm --filter @APPNAME/web test:rendered && node --experimental-strip-types --no-warnings qa/browse-request-state.mjs && node --no-warnings qa/actions.mjs && node --no-warnings qa/deploy-workflow-regression.mjs && node --no-warnings qa/generated-app-regression.mjs",
+    "typecheck": "pnpm --filter @properties/web exec tsc -b",
+    "test": "pnpm --filter @properties/web exec tsc -b && pnpm --filter @properties/web test:rendered && node --experimental-strip-types --no-warnings qa/browse-request-state.mjs && node --no-warnings qa/actions.mjs && node --no-warnings qa/deploy-workflow-regression.mjs && node --no-warnings qa/generated-app-regression.mjs",
     "test:lint-staged": "node --no-warnings qa/lint-staged-regression.mjs",
     "prepare": "husky"
   },

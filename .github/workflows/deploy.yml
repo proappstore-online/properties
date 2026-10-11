@@ -17,7 +17,7 @@ concurrency:
 jobs:
   deploy:
     # Canonical templates are never served (no registry entry) and retain
-    # APPNAME placeholders by design; instantiated apps copied from them deploy.
+    # properties placeholders by design; instantiated apps copied from them deploy.
     # Keep this an exact repository-name check: a generated app must not be
     # skipped merely because its name happens to contain "template".
     if: github.event.repository.name != 'template-app' && github.event.repository.name != 'template-marketplace'

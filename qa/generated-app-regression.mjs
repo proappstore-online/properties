@@ -1,5 +1,5 @@
 /**
- * A template has intentional APPNAME placeholders, but an instantiated app must
+ * A template has intentional properties placeholders, but an instantiated app must
  * pass the same static check and bundle normally. This fixture replaces every
  * source placeholder before running the generated app's check, typecheck and build.
  */
@@ -25,7 +25,7 @@ function replaceAppName(directory, appName) {
     const path = join(directory, entry.name)
     if (entry.isDirectory()) replaceAppName(path, appName)
     else if (entry.isFile() && textExtensions.has(extname(entry.name))) {
-      writeFileSync(path, readFileSync(path, 'utf8').replaceAll('APPNAME', appName))
+      writeFileSync(path, readFileSync(path, 'utf8').replaceAll('properties', appName))
     }
   }
 }
@@ -41,8 +41,8 @@ try {
 
   const appName = 'market-regression'
   replaceAppName(fixture, appName)
-  assert.equal(readFileSync(join(fixture, 'web/src/api.ts'), 'utf8').includes('APPNAME'), false, 'generated source has no app-id placeholder')
-  assert.equal(readFileSync(join(fixture, 'package.json'), 'utf8').includes('APPNAME'), false, 'generated workspace scripts target the replacement app id')
+  assert.equal(readFileSync(join(fixture, 'web/src/api.ts'), 'utf8').includes('properties'), false, 'generated source has no app-id placeholder')
+  assert.equal(readFileSync(join(fixture, 'package.json'), 'utf8').includes('properties'), false, 'generated workspace scripts target the replacement app id')
 
   const appSource = readFileSync(join(fixture, 'web/src/App.tsx'), 'utf8')
   const html = readFileSync(join(fixture, 'web/index.html'), 'utf8')
@@ -65,7 +65,7 @@ try {
     { name: appName, short_name: appName, description: 'Browse listings, save favourites, send requests and message owners.' },
     'the generated PWA manifest has app-owned identity and description',
   )
-  console.log('PASS  APPNAME-replaced generated app preserves public/sign-in/shell controls, app-owned metadata, and build')
+  console.log('PASS  properties-replaced generated app preserves public/sign-in/shell controls, app-owned metadata, and build')
 } finally {
   rmSync(fixture, { recursive: true, force: true })
 }
