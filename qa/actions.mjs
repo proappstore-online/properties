@@ -9,6 +9,7 @@ import { DatabaseSync } from 'node:sqlite'
 import { readFileSync } from 'node:fs'
 import { fileURLToPath } from 'node:url'
 import { randomUUID } from 'node:crypto'
+import { DEMO_LISTINGS, DEMO_PREFIX, demoPayload } from '../scripts/seed-demo.mjs'
 
 const read = (p) => JSON.parse(readFileSync(fileURLToPath(new URL(p, import.meta.url)), 'utf8'))
 const TOOLS = Object.fromEntries(read('../mcp.json').tools.map((t) => [t.name, t]))
@@ -220,6 +221,19 @@ ok(call('update_listing', OWNER, { id: 'm-ok', title: 'Pinned flat', lat: -37.8 
 ok(call('get_listing', null, { id: 'm-ok' })[0]?.lat === -37.7985, 'a refused pin change leaves the old pin in place')
 ok(call('update_listing', OWNER, { id: 'm-ok', title: 'Pinned flat', lat: null, lng: null }) === 1, 'clearing the pin on edit is allowed')
 ok(call('get_listing', null, { id: 'm-ok' })[0]?.lat === null, 'a cleared pin is gone from the detail page')
+
+// --- Demo data (P5): what scripts/seed-demo.mjs sends and removes ---------------------------
+const demoIds = DEMO_LISTINGS.map((item) => demoPayload(item).id)
+ok(DEMO_LISTINGS.map((item) => call('create_listing', OWNER, demoPayload(item))).every((n) => n === 1), 'every demo listing is accepted by create_listing as the owner')
+ok(call('create_listing', OWNER, demoPayload(DEMO_LISTINGS[0])) === 0, 'loading the demo again creates nothing new')
+ok(call('set_listing_status', STRANGER, { id: demoIds[0], status: 'archived' }) === 0, 'a stranger cannot archive a demo listing')
+ok(call('get_listing', null, { id: demoIds[0] }).length === 1, 'a refused archive leaves the demo listing public')
+const demoRows = call('list_my_listings', OWNER).filter((row) => row.title.startsWith(DEMO_PREFIX) && row.status !== 'archived')
+ok(demoRows.length === DEMO_LISTINGS.length, 'the owner can find every demo listing to remove')
+ok(demoRows.map((row) => call('set_listing_status', OWNER, { id: row.id, status: 'archived' })).every((n) => n === 1), 'the owner archives every demo listing')
+ok(call('list_listings', null).every((row) => !row.title.startsWith(DEMO_PREFIX)), 'archived demo listings leave the catalogue')
+ok(call('get_listing', null, { id: demoIds[0] }).length === 0, 'an archived demo listing is no longer public')
+ok(call('set_listing_status', OWNER, { id: demoIds[0], status: 'active' }) === 1, 'the owner can restore a demo listing, so reloading brings it back')
 
 console.log(failures ? `\n${failures} failing` : '\nall passing')
 process.exit(failures ? 1 : 0)

@@ -11,7 +11,7 @@
     "preview": "pnpm --filter @properties/web preview",
     "lint": "echo 'Lint configured per app; extend .lintstagedrc.js with eslint/prettier'",
     "typecheck": "pnpm --filter @properties/web exec tsc -b",
-    "test": "pnpm --filter @properties/web exec tsc -b && pnpm --filter @properties/web test:rendered && node --experimental-strip-types --no-warnings qa/browse-request-state.mjs && node --experimental-strip-types --no-warnings qa/property-types.mjs && node --experimental-strip-types --no-warnings qa/request-wording.mjs && node --experimental-strip-types --no-warnings qa/map-placement.mjs && node --no-warnings qa/actions.mjs && node --no-warnings qa/deploy-workflow-regression.mjs && node --no-warnings qa/generated-app-regression.mjs",
+    "test": "pnpm --filter @properties/web exec tsc -b && pnpm --filter @properties/web test:rendered && node --experimental-strip-types --no-warnings qa/browse-request-state.mjs && node --experimental-strip-types --no-warnings qa/property-types.mjs && node --experimental-strip-types --no-warnings qa/request-wording.mjs && node --experimental-strip-types --no-warnings qa/map-placement.mjs && node --experimental-strip-types --no-warnings qa/demo-listings.mjs && node --no-warnings qa/actions.mjs && node --no-warnings qa/deploy-workflow-regression.mjs && node --no-warnings qa/generated-app-regression.mjs",
     "test:lint-staged": "node --no-warnings qa/lint-staged-regression.mjs",
     "prepare": "husky"
   },

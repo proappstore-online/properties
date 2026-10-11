@@ -35,8 +35,38 @@ pas create my-market --template template-marketplace
 ## What this template deliberately does not do
 
 Payments and escrow (the platform subscription is the only billing), real-time dispatch or
-tracking, server-authoritative matching, community groups. No seed tooling ships in the
-manifest; use `pas` or the console to load demo data.
+tracking, server-authoritative matching, community groups. Demo data is opt-in and
+removable; see [Demo data](#demo-data).
+
+## Demo data
+
+`scripts/seed-demo.mjs` loads twelve sample Melbourne listings (seven weekly rentals and five
+sales) so the catalogue looks alive for a demo or a test, and removes them again before launch.
+
+- Every demo title starts with `[Demo] ` and every description says it is a demo. The listings are
+  owned by your account and shown as "Demo host".
+- They have no photos, and their locations are suburbs only, with approximate suburb-centre pins.
+  Nothing is a real address.
+- The script uses the app's own actions as you, so it can only write what you could write by hand.
+
+```bash
+# Print what would be loaded. No network, no credentials.
+node scripts/seed-demo.mjs preview
+
+# Load the demo listings (creates them, or restores any that were removed).
+PAS_COOKIE='<Cookie header from your signed-in browser>' node scripts/seed-demo.mjs load
+
+# Remove them: each one is archived, so it leaves the catalogue but its rows remain.
+PAS_COOKIE='<Cookie header from your signed-in browser>' node scripts/seed-demo.mjs remove
+```
+
+`PAS_COOKIE` is your session. Get it from DevTools while you are signed in to
+`properties.proappstore.online` (Network tab, any request to the site, Request Headers, `cookie`).
+Do not commit it. Loading is idempotent, because each demo listing has a fixed id.
+`PAS_ORIGIN` overrides the default `https://properties.proappstore.online`.
+
+`qa/demo-listings.mjs` and the demo checks in `qa/actions.mjs` (both run by `pnpm test`) keep the
+fixture valid against the write guards and check the remove path.
 
 ## Security notes
 
