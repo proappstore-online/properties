@@ -69,7 +69,7 @@ export function ListingPage({ id }: { id: string }) {
       {features(listing) ? <p className="mt-1 text-sm text-[var(--ink)]">{features(listing)}</p> : null}
       {stats.review_count ? <p className="mt-1 text-sm"><Stars rating={stats.avg_rating ?? 0} /> <span className="text-[var(--muted)]">{stats.review_count} review{stats.review_count === 1 ? '' : 's'}</span></p> : null}
       <p className="mt-4 whitespace-pre-wrap text-sm text-[var(--ink)]">{listing.description}</p>
-      {MAPS_ENABLED && listing.lat !== null && listing.lng !== null ? (
+      {MAPS_ENABLED && listing.lat != null && listing.lng != null ? (
         <iframe title="Map" src={app.maps.embedUrl(listing.lat, listing.lng)} className="mt-4 h-64 w-full rounded-[var(--radius)] border border-[var(--line)]" loading="lazy" />
       ) : null}
 

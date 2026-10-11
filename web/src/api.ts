@@ -11,8 +11,11 @@ export const app = initPro({ appId: 'properties', authMode: 'platform-cookie' })
 export { REQUEST, REQUEST_STATUS_LABEL, requestStatusLabel } from './requestWording'
 /** Extension point: the property types, defined in propertyTypes.ts (the write actions in mcp.json must list the same slugs). */
 export { CATEGORIES, categoryLabel, isCategory, type CategoryValue } from './propertyTypes'
-/** Optional map capability: geocode a listing's location on save and show it on the detail page. */
-export const MAPS_ENABLED = false
+/**
+ * Map capability: the owner form geocodes the location and suburb on save (places.ts), and the
+ * detail page embeds the map. Coordinates come only from the detail and owner reads.
+ */
+export const MAPS_ENABLED = true
 
 /** Price period: a weekly rent or an asking price. Enforced by the write actions in mcp.json. */
 export const PRICE_UNITS = [
@@ -33,8 +36,9 @@ export interface Listing {
   description: string
   category: string
   location: string
-  lat: number | null
-  lng: number | null
+  /** Set when the address was placed. Only the detail and owner reads return these (not the catalogue). */
+  lat?: number | null
+  lng?: number | null
   price: number | null
   /** 'per_week' or 'sale' for new listings; older listings may carry free text. */
   price_unit: string

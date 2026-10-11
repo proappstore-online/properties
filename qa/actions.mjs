@@ -205,5 +205,21 @@ ok(call('get_listing', null, { id: 'legacy-2' })[0]?.category === 'job', 'a list
 ok(call('list_listings', null, { category: 'townhouse' }).some((row) => row.id === 'p-flat'), 'the catalogue filters on the property type')
 ok(call('search_listings', null, { q: 'Fitzroy', category: 'townhouse', suburb: 'north' }).map((row) => row.id).join() === 'p-flat', 'the property type filter composes with text search and the suburb filter')
 
+// --- Map placement (P4) ---------------------------------------------------------------------
+ok(call('create_listing', OWNER, { id: 'm-x1', owner_name: 'Olive', title: 'Half pin', lat: -37.8 }) === 0, 'create refuses a latitude without a longitude')
+ok(call('create_listing', OWNER, { id: 'm-x2', owner_name: 'Olive', title: 'Off the map', lat: 95, lng: 10 }) === 0, 'create refuses a latitude outside -90 to 90')
+ok(call('create_listing', OWNER, { id: 'm-x3', owner_name: 'Olive', title: 'Off the map', lat: 10, lng: 200 }) === 0, 'create refuses a longitude outside -180 to 180')
+ok(db.prepare("SELECT COUNT(*) AS n FROM listings WHERE id LIKE 'm-x%'").get().n === 0, 'refused pins leave no rows behind')
+ok(call('create_listing', OWNER, { id: 'm-ok', owner_name: 'Olive', title: 'Pinned flat', suburb: 'Fitzroy', lat: -37.7985, lng: 144.9786 }) === 1, 'owner publishes a listing with a pin')
+ok(call('get_listing', null, { id: 'm-ok' })[0]?.lat === -37.7985, 'the detail page reads back the pin')
+ok(call('list_listings', null).every((row) => !('lat' in row) && !('lng' in row)), 'the catalogue never returns coordinates')
+ok(call('search_listings', null, { q: 'Pinned' }).every((row) => !('lat' in row)), 'search never returns coordinates')
+ok(call('add_favorite', SEEKER, { listing_id: 'm-ok' }) === 1 && call('list_my_favorites', SEEKER).every((row) => !('lat' in row)), 'saved listings never return coordinates')
+ok(call('update_listing', STRANGER, { id: 'm-ok', title: 'Pinned flat', lat: 0, lng: 0 }) === 0, 'a stranger cannot move the pin')
+ok(call('update_listing', OWNER, { id: 'm-ok', title: 'Pinned flat', lat: -37.8 }) === 0, 'update refuses a latitude without a longitude')
+ok(call('get_listing', null, { id: 'm-ok' })[0]?.lat === -37.7985, 'a refused pin change leaves the old pin in place')
+ok(call('update_listing', OWNER, { id: 'm-ok', title: 'Pinned flat', lat: null, lng: null }) === 1, 'clearing the pin on edit is allowed')
+ok(call('get_listing', null, { id: 'm-ok' })[0]?.lat === null, 'a cleared pin is gone from the detail page')
+
 console.log(failures ? `\n${failures} failing` : '\nall passing')
 process.exit(failures ? 1 : 0)

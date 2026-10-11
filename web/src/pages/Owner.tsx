@@ -1,12 +1,22 @@
 import { useEffect, useState, type FormEvent } from 'react'
 import { Button, Input } from '@proappstore/sdk/ui'
 import { app, q, x, categoryLabel, images, imageUrl, isCategory, uploadPhoto, money, CATEGORIES, MAPS_ENABLED, PRICE_UNITS, type CategoryValue, type Listing, type PriceUnit } from '../api'
+import { addressQuery, locate } from '../places'
 import { Empty, Field, Section, Status, TextArea } from '../components'
+
+/** Set by the form before it returns to the dashboard, shown once on arrival. */
+const NOTICE_KEY = 'properties:notice'
+const MAP_NOT_FOUND = "We couldn't find that address on the map, so the listing is saved without a pin. Check the location and save again."
 
 export function OwnerDashboard() {
   const [rows, setRows] = useState<Listing[] | null>(null)
+  const [notice, setNotice] = useState('')
   const load = () => q<Listing>('list_my_listings').then(setRows)
   useEffect(() => { load() }, [])
+  useEffect(() => {
+    const pending = sessionStorage.getItem(NOTICE_KEY)
+    if (pending) { sessionStorage.removeItem(NOTICE_KEY); setNotice(pending) }
+  }, [])
 
   async function setStatus(l: Listing, status: string) {
     await x('set_listing_status', { id: l.id, status })
@@ -15,6 +25,7 @@ export function OwnerDashboard() {
 
   return (
     <Section title="My listings" action={<Button onClick={() => { location.hash = '#/mine/new' }}>New listing</Button>}>
+      {notice ? <p role="status" className="mb-4 text-sm text-[var(--muted)]">{notice}</p> : null}
       {rows && rows.length === 0 ? <Empty title="You have no listings" description="Publish one and it appears in the public catalogue immediately." /> : null}
       <ul className="space-y-3">
         {(rows ?? []).map((l) => (
@@ -105,15 +116,13 @@ export function ListingForm({ id }: { id?: string }) {
     setBusy(true)
     setError('')
     try {
-      let lat: number | null = null
-      let lng: number | null = null
-      if (MAPS_ENABLED && draft.location.trim()) {
-        const [hit] = await app.maps.geocode(draft.location.trim(), 1).catch(() => [])
-        if (hit) { lat = hit.lat; lng = hit.lng }
-      }
+      // Re-placed on every save, so an edited address moves the pin and a cleared one removes it.
+      const query = addressQuery(draft.location, draft.suburb)
+      const place = MAPS_ENABLED ? await locate(query, (text) => app.maps.geocode(text, 1)) : null
       const params = {
         title: draft.title.trim(), description: draft.description, category: draft.category, location: draft.location.trim(),
-        suburb: draft.suburb.trim(), lat, lng, price: draft.price === '' ? null : Number(draft.price), price_unit: draft.price_unit,
+        suburb: draft.suburb.trim(), lat: place?.lat ?? null, lng: place?.lng ?? null,
+        price: draft.price === '' ? null : Number(draft.price), price_unit: draft.price_unit,
         bedrooms: wholeOrNull(draft.bedrooms), bathrooms: wholeOrNull(draft.bathrooms), car_spaces: wholeOrNull(draft.car_spaces),
         images: JSON.stringify(draft.images),
       }
@@ -121,6 +130,7 @@ export function ListingForm({ id }: { id?: string }) {
         ? await x('update_listing', { id, ...params })
         : await x('create_listing', { id: crypto.randomUUID(), owner_name: user.name, ...params })
       if (!changes) throw new Error('Nothing was saved. If you are editing, the listing may not be yours.')
+      if (MAPS_ENABLED && query !== null && place === null) sessionStorage.setItem(NOTICE_KEY, MAP_NOT_FOUND)
       location.hash = '#/mine'
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Could not save')

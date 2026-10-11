@@ -4,7 +4,7 @@
       "name": "list_listings",
       "description": "Public catalogue page, newest first. Only active listings; keyset pagination \u2014 pass both created_at and id from the last row as before and before_id for the next page. No personal data beyond the owner's chosen display name.",
       "operation": "query",
-      "sql": "SELECT id, owner_id, owner_name, status, title, description, category, location, lat, lng, price, price_unit, bedrooms, bathrooms, car_spaces, suburb, images, created_at, updated_at FROM listings WHERE status = 'active' AND (:category IS NULL OR category = :category) AND (:suburb IS NULL OR suburb LIKE '%' || :suburb || '%') AND (:min_price IS NULL OR price >= :min_price) AND (:max_price IS NULL OR price <= :max_price) AND (:min_bedrooms IS NULL OR bedrooms >= :min_bedrooms) AND (:price_unit IS NULL OR price_unit = :price_unit) AND (:before IS NULL OR created_at < :before OR (created_at = :before AND id < :before_id)) ORDER BY created_at DESC, id DESC LIMIT 24",
+      "sql": "SELECT id, owner_id, owner_name, status, title, description, category, location, price, price_unit, bedrooms, bathrooms, car_spaces, suburb, images, created_at, updated_at FROM listings WHERE status = 'active' AND (:category IS NULL OR category = :category) AND (:suburb IS NULL OR suburb LIKE '%' || :suburb || '%') AND (:min_price IS NULL OR price >= :min_price) AND (:max_price IS NULL OR price <= :max_price) AND (:min_bedrooms IS NULL OR bedrooms >= :min_bedrooms) AND (:price_unit IS NULL OR price_unit = :price_unit) AND (:before IS NULL OR created_at < :before OR (created_at = :before AND id < :before_id)) ORDER BY created_at DESC, id DESC LIMIT 24",
       "params": {
         "category": {
           "type": "string",
@@ -53,7 +53,7 @@
       "name": "search_listings",
       "description": "Public search over active listings by title, description or location (substring match, case-insensitive), optionally composed with a category filter. Keyset pagination uses both before and before_id from the last row. Same columns as list_listings.",
       "operation": "query",
-      "sql": "SELECT id, owner_id, owner_name, status, title, description, category, location, lat, lng, price, price_unit, bedrooms, bathrooms, car_spaces, suburb, images, created_at, updated_at FROM listings WHERE status = 'active' AND (title LIKE '%' || :q || '%' OR description LIKE '%' || :q || '%' OR location LIKE '%' || :q || '%') AND (:category IS NULL OR category = :category) AND (:suburb IS NULL OR suburb LIKE '%' || :suburb || '%') AND (:min_price IS NULL OR price >= :min_price) AND (:max_price IS NULL OR price <= :max_price) AND (:min_bedrooms IS NULL OR bedrooms >= :min_bedrooms) AND (:price_unit IS NULL OR price_unit = :price_unit) AND (:before IS NULL OR created_at < :before OR (created_at = :before AND id < :before_id)) ORDER BY created_at DESC, id DESC LIMIT 24",
+      "sql": "SELECT id, owner_id, owner_name, status, title, description, category, location, price, price_unit, bedrooms, bathrooms, car_spaces, suburb, images, created_at, updated_at FROM listings WHERE status = 'active' AND (title LIKE '%' || :q || '%' OR description LIKE '%' || :q || '%' OR location LIKE '%' || :q || '%') AND (:category IS NULL OR category = :category) AND (:suburb IS NULL OR suburb LIKE '%' || :suburb || '%') AND (:min_price IS NULL OR price >= :min_price) AND (:max_price IS NULL OR price <= :max_price) AND (:min_bedrooms IS NULL OR bedrooms >= :min_bedrooms) AND (:price_unit IS NULL OR price_unit = :price_unit) AND (:before IS NULL OR created_at < :before OR (created_at = :before AND id < :before_id)) ORDER BY created_at DESC, id DESC LIMIT 24",
       "params": {
         "q": {
           "type": "string",
@@ -164,9 +164,9 @@
     },
     {
       "name": "create_listing",
-      "description": "Publish a listing owned by the caller. Idempotent under retry: the client supplies the id and a repeat is ignored (meta.changes = 0). Refused the same way (meta.changes = 0) when price_unit is not per_week or sale, the category is not a property type, or a price or count is negative.",
+      "description": "Publish a listing owned by the caller. Idempotent under retry: the client supplies the id and a repeat is ignored (meta.changes = 0). Refused the same way (meta.changes = 0) when price_unit is not per_week or sale, the category is not a property type, or a price or count is negative, or the coordinates are only partly set or out of range.",
       "operation": "execute",
-      "sql": "INSERT OR IGNORE INTO listings (id, owner_id, owner_name, status, title, description, category, location, suburb, lat, lng, price, price_unit, bedrooms, bathrooms, car_spaces, images, created_at, updated_at) SELECT :id, :__user_id, :owner_name, 'active', :title, :description, :category, :location, :suburb, :lat, :lng, :price, :price_unit, :bedrooms, :bathrooms, :car_spaces, :images, :__now, :__now WHERE :price_unit IN ('per_week', 'sale') AND (:price IS NULL OR :price >= 0) AND (:bedrooms IS NULL OR (:bedrooms >= 0 AND :bedrooms = CAST(:bedrooms AS INTEGER))) AND (:bathrooms IS NULL OR (:bathrooms >= 0 AND :bathrooms = CAST(:bathrooms AS INTEGER))) AND (:car_spaces IS NULL OR (:car_spaces >= 0 AND :car_spaces = CAST(:car_spaces AS INTEGER))) AND :category IN ('house', 'apartment', 'townhouse', 'studio', 'room_share', 'land', 'other')",
+      "sql": "INSERT OR IGNORE INTO listings (id, owner_id, owner_name, status, title, description, category, location, suburb, lat, lng, price, price_unit, bedrooms, bathrooms, car_spaces, images, created_at, updated_at) SELECT :id, :__user_id, :owner_name, 'active', :title, :description, :category, :location, :suburb, :lat, :lng, :price, :price_unit, :bedrooms, :bathrooms, :car_spaces, :images, :__now, :__now WHERE :price_unit IN ('per_week', 'sale') AND (:price IS NULL OR :price >= 0) AND (:bedrooms IS NULL OR (:bedrooms >= 0 AND :bedrooms = CAST(:bedrooms AS INTEGER))) AND (:bathrooms IS NULL OR (:bathrooms >= 0 AND :bathrooms = CAST(:bathrooms AS INTEGER))) AND (:car_spaces IS NULL OR (:car_spaces >= 0 AND :car_spaces = CAST(:car_spaces AS INTEGER))) AND :category IN ('house', 'apartment', 'townhouse', 'studio', 'room_share', 'land', 'other') AND ((:lat IS NULL AND :lng IS NULL) OR (:lat BETWEEN -90 AND 90 AND :lng BETWEEN -180 AND 180))",
       "params": {
         "id": {
           "type": "string",
@@ -245,9 +245,9 @@
     },
     {
       "name": "update_listing",
-      "description": "Edit one of the caller's own listings. Refused (meta.changes = 0) when price_unit is not per_week or sale, the category is not a property type, or a price or count is negative.",
+      "description": "Edit one of the caller's own listings. Refused (meta.changes = 0) when price_unit is not per_week or sale, the category is not a property type, or a price or count is negative, or the coordinates are only partly set or out of range.",
       "operation": "execute",
-      "sql": "UPDATE listings SET title = :title, description = :description, category = :category, location = :location, suburb = :suburb, lat = :lat, lng = :lng, price = :price, price_unit = :price_unit, bedrooms = :bedrooms, bathrooms = :bathrooms, car_spaces = :car_spaces, images = :images, updated_at = :__now WHERE id = :id AND owner_id = :__user_id AND :price_unit IN ('per_week', 'sale') AND (:price IS NULL OR :price >= 0) AND (:bedrooms IS NULL OR (:bedrooms >= 0 AND :bedrooms = CAST(:bedrooms AS INTEGER))) AND (:bathrooms IS NULL OR (:bathrooms >= 0 AND :bathrooms = CAST(:bathrooms AS INTEGER))) AND (:car_spaces IS NULL OR (:car_spaces >= 0 AND :car_spaces = CAST(:car_spaces AS INTEGER))) AND :category IN ('house', 'apartment', 'townhouse', 'studio', 'room_share', 'land', 'other')",
+      "sql": "UPDATE listings SET title = :title, description = :description, category = :category, location = :location, suburb = :suburb, lat = :lat, lng = :lng, price = :price, price_unit = :price_unit, bedrooms = :bedrooms, bathrooms = :bathrooms, car_spaces = :car_spaces, images = :images, updated_at = :__now WHERE id = :id AND owner_id = :__user_id AND :price_unit IN ('per_week', 'sale') AND (:price IS NULL OR :price >= 0) AND (:bedrooms IS NULL OR (:bedrooms >= 0 AND :bedrooms = CAST(:bedrooms AS INTEGER))) AND (:bathrooms IS NULL OR (:bathrooms >= 0 AND :bathrooms = CAST(:bathrooms AS INTEGER))) AND (:car_spaces IS NULL OR (:car_spaces >= 0 AND :car_spaces = CAST(:car_spaces AS INTEGER))) AND :category IN ('house', 'apartment', 'townhouse', 'studio', 'room_share', 'land', 'other') AND ((:lat IS NULL AND :lng IS NULL) OR (:lat BETWEEN -90 AND 90 AND :lng BETWEEN -180 AND 180))",
       "params": {
         "id": {
           "type": "string",
@@ -367,7 +367,7 @@
       "name": "list_my_favorites",
       "description": "The caller's saved listings that are still active, most recently saved first.",
       "operation": "query",
-      "sql": "SELECT l.id, l.owner_id, l.owner_name, l.status, l.title, l.description, l.category, l.location, l.lat, l.lng, l.price, l.price_unit, l.bedrooms, l.bathrooms, l.car_spaces, l.suburb, l.images, l.created_at, l.updated_at FROM favorites f JOIN listings l ON l.id = f.listing_id WHERE f.user_id = :__user_id AND l.status = 'active' ORDER BY f.created_at DESC LIMIT 200",
+      "sql": "SELECT l.id, l.owner_id, l.owner_name, l.status, l.title, l.description, l.category, l.location, l.price, l.price_unit, l.bedrooms, l.bathrooms, l.car_spaces, l.suburb, l.images, l.created_at, l.updated_at FROM favorites f JOIN listings l ON l.id = f.listing_id WHERE f.user_id = :__user_id AND l.status = 'active' ORDER BY f.created_at DESC LIMIT 200",
       "params": {},
       "requires_auth": true
     },
