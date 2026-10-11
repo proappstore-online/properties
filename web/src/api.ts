@@ -13,6 +13,13 @@ export const CATEGORIES = ['room', 'job', 'service', 'vehicle', 'other'] as cons
 /** Optional map capability: geocode a listing's location on save and show it on the detail page. */
 export const MAPS_ENABLED = false
 
+/** Price period: a weekly rent or an asking price. Enforced by the write actions in mcp.json. */
+export const PRICE_UNITS = [
+  { value: 'per_week', label: 'Rent, per week' },
+  { value: 'sale', label: 'For sale' },
+] as const
+export type PriceUnit = (typeof PRICE_UNITS)[number]['value']
+
 export type ListingStatus = 'active' | 'paused' | 'archived'
 export type RequestStatus = 'pending' | 'accepted' | 'declined' | 'completed' | 'cancelled'
 
@@ -28,7 +35,12 @@ export interface Listing {
   lat: number | null
   lng: number | null
   price: number | null
+  /** 'per_week' or 'sale' for new listings; older listings may carry free text. */
   price_unit: string
+  suburb: string
+  bedrooms: number | null
+  bathrooms: number | null
+  car_spaces: number | null
   /** JSON array of public storage keys (see uploadPhoto). */
   images: string
   created_at: number
@@ -114,10 +126,21 @@ export async function uploadPhoto(file: File): Promise<string> {
   return res.key
 }
 
+const DOLLARS = new Intl.NumberFormat('en-AU', { style: 'currency', currency: 'AUD', currencyDisplay: 'narrowSymbol', maximumFractionDigits: 0 })
+
+/** "$650 / week" for rent, "$1,250,000" for sale. Legacy free-text units are kept as written. */
 export function money(l: Pick<Listing, 'price' | 'price_unit'>): string {
   if (l.price === null || l.price === undefined) return ''
-  const amount = new Intl.NumberFormat(undefined, { style: 'currency', currency: 'USD', maximumFractionDigits: 0 }).format(l.price)
+  const amount = DOLLARS.format(l.price)
+  if (l.price_unit === 'sale') return amount
+  if (l.price_unit === 'per_week') return `${amount} / week`
   return l.price_unit ? `${amount} / ${l.price_unit}` : amount
+}
+
+/** "3 bed · 2 bath · 1 car". Unknown counts are left out rather than shown as 0 or "null". */
+export function features(l: Pick<Listing, 'bedrooms' | 'bathrooms' | 'car_spaces'>): string {
+  const part = (n: number | null, one: string, many: string) => (n === null || n === undefined ? '' : `${n} ${n === 1 ? one : many}`)
+  return [part(l.bedrooms, 'bed', 'beds'), part(l.bathrooms, 'bath', 'baths'), part(l.car_spaces, 'car', 'cars')].filter(Boolean).join(' · ')
 }
 
 export function when(ts: number): string {

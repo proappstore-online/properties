@@ -1,11 +1,15 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { Button, Input } from '@proappstore/sdk/ui'
-import { app, pub, q, x, CATEGORIES, type Listing } from '../api'
+import { app, pub, q, x, CATEGORIES, PRICE_UNITS, type Listing } from '../api'
 import { browseRequestKey, createBrowseRequestGate, mergeListings, type BrowseCriteria, type BrowseCursor } from '../browseRequestState'
 import { Empty, ListingCard, Section } from '../components'
 
 const PAGE_SIZE = 24
 const SEARCH_DEBOUNCE_MS = 250
+const MIN_BEDROOMS = ['1', '2', '3', '4'] as const
+
+/** Filter text as typed; blank means no filter, so the server receives null. */
+const numberOrNull = (text: string) => (text.trim() === '' ? null : Number(text))
 
 /** Saved ids for the signed-in user; empty and inert when signed out. */
 export function useSaved() {
@@ -29,13 +33,20 @@ export function useSaved() {
 export function Browse() {
   const [query, setQuery] = useState('')
   const [category, setCategory] = useState('')
+  const [suburb, setSuburb] = useState('')
+  const [minPrice, setMinPrice] = useState('')
+  const [maxPrice, setMaxPrice] = useState('')
+  const [minBedrooms, setMinBedrooms] = useState('')
+  const [priceUnit, setPriceUnit] = useState('')
   const [rows, setRows] = useState<Listing[]>([])
   const [done, setDone] = useState(false)
   const [busy, setBusy] = useState(true)
   const { saved, toggle, signedIn } = useSaved()
   const requestGate = useRef(createBrowseRequestGate())
   const debounceTimer = useRef<number | null>(null)
-  const criteria = useMemo<BrowseCriteria>(() => ({ query: query.trim(), category }), [query, category])
+  const criteria = useMemo<BrowseCriteria>(() => ({
+    query: query.trim(), category, suburb: suburb.trim(), minPrice, maxPrice, minBedrooms, priceUnit,
+  }), [query, category, suburb, minPrice, maxPrice, minBedrooms, priceUnit])
 
   const load = useCallback(async (nextCriteria: BrowseCriteria, cursor?: BrowseCursor) => {
     const key = browseRequestKey(nextCriteria, cursor)
@@ -43,7 +54,16 @@ export function Browse() {
     if (token === null) return
     setBusy(true)
     try {
-      const params = { category: nextCriteria.category || null, before: cursor?.created_at ?? null, before_id: cursor?.id ?? null }
+      const params = {
+        category: nextCriteria.category || null,
+        suburb: nextCriteria.suburb || null,
+        min_price: numberOrNull(nextCriteria.minPrice),
+        max_price: numberOrNull(nextCriteria.maxPrice),
+        min_bedrooms: numberOrNull(nextCriteria.minBedrooms),
+        price_unit: nextCriteria.priceUnit || null,
+        before: cursor?.created_at ?? null,
+        before_id: cursor?.id ?? null,
+      }
       const page = nextCriteria.query
         ? await pub<Listing>('search_listings', { q: nextCriteria.query, ...params })
         : await pub<Listing>('list_listings', params)
@@ -88,6 +108,19 @@ export function Browse() {
           {CATEGORIES.map((c) => <option key={c} value={c}>{c}</option>)}
         </select>
         <Button type="submit" variant="secondary">Search</Button>
+        <div className="flex w-full flex-wrap gap-2">
+          <div className="min-w-40 flex-1"><Input aria-label="Suburb" placeholder="Suburb" value={suburb} onChange={(e) => setSuburb(e.target.value)} /></div>
+          <select aria-label="Rent or sale" value={priceUnit} onChange={(e) => setPriceUnit(e.target.value)} className="rounded-[var(--radius-sm)] border border-[var(--line-strong)] bg-[var(--panel-strong)] px-3 py-2 text-sm text-[var(--ink)]">
+            <option value="">Rent or sale</option>
+            {PRICE_UNITS.map((u) => <option key={u.value} value={u.value}>{u.label}</option>)}
+          </select>
+          <div className="w-28"><Input aria-label="Minimum price" type="number" min={0} placeholder="Min $" value={minPrice} onChange={(e) => setMinPrice(e.target.value)} /></div>
+          <div className="w-28"><Input aria-label="Maximum price" type="number" min={0} placeholder="Max $" value={maxPrice} onChange={(e) => setMaxPrice(e.target.value)} /></div>
+          <select aria-label="Minimum bedrooms" value={minBedrooms} onChange={(e) => setMinBedrooms(e.target.value)} className="rounded-[var(--radius-sm)] border border-[var(--line-strong)] bg-[var(--panel-strong)] px-3 py-2 text-sm text-[var(--ink)]">
+            <option value="">Any bedrooms</option>
+            {MIN_BEDROOMS.map((n) => <option key={n} value={n}>{n}+ beds</option>)}
+          </select>
+        </div>
       </form>
       {rows.length === 0 && !busy ? <Empty title="No listings yet" description="Be the first: sign in and publish one." /> : null}
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">

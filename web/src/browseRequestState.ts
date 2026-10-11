@@ -1,6 +1,12 @@
 export interface BrowseCriteria {
   query: string
   category: string
+  /** Filter inputs as the user typed them; empty means "no filter". */
+  suburb: string
+  minPrice: string
+  maxPrice: string
+  minBedrooms: string
+  priceUnit: string
 }
 
 export interface BrowseCursor {
@@ -10,7 +16,10 @@ export interface BrowseCursor {
 
 /** A stable identity for one criteria/cursor pair, used to suppress duplicate page requests. */
 export function browseRequestKey(criteria: BrowseCriteria, cursor?: BrowseCursor): string {
-  return JSON.stringify([criteria.query, criteria.category, cursor?.created_at ?? null, cursor?.id ?? null])
+  return JSON.stringify([
+    criteria.query, criteria.category, criteria.suburb, criteria.minPrice, criteria.maxPrice, criteria.minBedrooms, criteria.priceUnit,
+    cursor?.created_at ?? null, cursor?.id ?? null,
+  ])
 }
 
 /**

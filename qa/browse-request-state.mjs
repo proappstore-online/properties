@@ -25,6 +25,17 @@ gate.invalidate()
 const changedFilter = gate.start(browseRequestKey({ query: 'shared', category: 'rent' }))
 assert.ok(changedFilter !== null && gate.isCurrent(changedFilter), 'changed criteria reset to a fresh first page')
 
+const filtered = { query: '', category: '', suburb: '', minPrice: '', maxPrice: '', minBedrooms: '', priceUnit: '' }
+const keys = [
+  browseRequestKey(filtered),
+  browseRequestKey({ ...filtered, suburb: 'Fitzroy' }),
+  browseRequestKey({ ...filtered, minPrice: '400' }),
+  browseRequestKey({ ...filtered, maxPrice: '400' }),
+  browseRequestKey({ ...filtered, minBedrooms: '2' }),
+  browseRequestKey({ ...filtered, priceUnit: 'sale' }),
+]
+assert.equal(new Set(keys).size, keys.length, 'every browse filter changes the request identity, so a filter change is never deduplicated away')
+
 const merged = mergeListings([{ id: 'one' }, { id: 'two' }], [{ id: 'two' }, { id: 'three' }])
 assert.deepEqual(merged.map((row) => row.id), ['one', 'two', 'three'], 'overlapping retry pages cannot duplicate cards')
 

@@ -1,6 +1,6 @@
 import { useEffect, useState, type FormEvent } from 'react'
 import { Button, Input } from '@proappstore/sdk/ui'
-import { app, q, x, images, imageUrl, uploadPhoto, money, CATEGORIES, MAPS_ENABLED, type Listing } from '../api'
+import { app, q, x, images, imageUrl, uploadPhoto, money, CATEGORIES, MAPS_ENABLED, PRICE_UNITS, type Listing, type PriceUnit } from '../api'
 import { Empty, Field, Section, Status, TextArea } from '../components'
 
 export function OwnerDashboard() {
@@ -37,8 +37,25 @@ export function OwnerDashboard() {
   )
 }
 
-type Draft = { title: string; description: string; category: string; location: string; price: string; price_unit: string; images: string[] }
-const EMPTY: Draft = { title: '', description: '', category: CATEGORIES[0], location: '', price: '', price_unit: '', images: [] }
+type Draft = {
+  title: string; description: string; category: string; location: string; suburb: string
+  price: string; price_unit: PriceUnit; bedrooms: string; bathrooms: string; car_spaces: string; images: string[]
+}
+const EMPTY: Draft = {
+  title: '', description: '', category: CATEGORIES[0], location: '', suburb: '',
+  price: '', price_unit: 'per_week', bedrooms: '', bathrooms: '', car_spaces: '', images: [],
+}
+
+const isWhole = (text: string) => text.trim() === '' || /^\d+$/.test(text.trim())
+const wholeOrNull = (text: string) => (text.trim() === '' ? null : Number(text))
+const isPriceUnit = (value: string): value is PriceUnit => PRICE_UNITS.some((u) => u.value === value)
+
+/** The first problem with the form, in the owner's words. Mirrors the write guards in mcp.json. */
+function invalidField(d: Draft): string {
+  if (d.price !== '' && !(Number(d.price) >= 0)) return 'Price cannot be negative.'
+  if (![d.bedrooms, d.bathrooms, d.car_spaces].every(isWhole)) return 'Bedrooms, bathrooms and car spaces must be whole numbers, 0 or more.'
+  return ''
+}
 
 export function ListingForm({ id }: { id?: string }) {
   const [draft, setDraft] = useState<Draft>(EMPTY)
@@ -50,7 +67,16 @@ export function ListingForm({ id }: { id?: string }) {
     if (!id) return
     q<Listing>('get_my_listing', { id }).then(([l]) => {
       if (!l) { location.hash = '#/mine'; return }
-      setDraft({ title: l.title, description: l.description, category: l.category, location: l.location, price: l.price === null ? '' : String(l.price), price_unit: l.price_unit, images: images(l) })
+      setDraft({
+        title: l.title, description: l.description, category: l.category, location: l.location, suburb: l.suburb,
+        price: l.price === null ? '' : String(l.price),
+        // Listings published before the price periods existed carry free text; they open on weekly rent.
+        price_unit: isPriceUnit(l.price_unit) ? l.price_unit : 'per_week',
+        bedrooms: l.bedrooms === null ? '' : String(l.bedrooms),
+        bathrooms: l.bathrooms === null ? '' : String(l.bathrooms),
+        car_spaces: l.car_spaces === null ? '' : String(l.car_spaces),
+        images: images(l),
+      })
     })
   }, [id])
 
@@ -72,6 +98,8 @@ export function ListingForm({ id }: { id?: string }) {
     e.preventDefault()
     const user = app.auth.user
     if (!user || !draft.title.trim()) return
+    const problem = invalidField(draft)
+    if (problem) { setError(problem); return }
     setBusy(true)
     setError('')
     try {
@@ -83,7 +111,9 @@ export function ListingForm({ id }: { id?: string }) {
       }
       const params = {
         title: draft.title.trim(), description: draft.description, category: draft.category, location: draft.location.trim(),
-        lat, lng, price: draft.price === '' ? null : Number(draft.price), price_unit: draft.price_unit.trim(), images: JSON.stringify(draft.images),
+        suburb: draft.suburb.trim(), lat, lng, price: draft.price === '' ? null : Number(draft.price), price_unit: draft.price_unit,
+        bedrooms: wholeOrNull(draft.bedrooms), bathrooms: wholeOrNull(draft.bathrooms), car_spaces: wholeOrNull(draft.car_spaces),
+        images: JSON.stringify(draft.images),
       }
       const changes = id
         ? await x('update_listing', { id, ...params })
@@ -108,9 +138,19 @@ export function ListingForm({ id }: { id?: string }) {
               {CATEGORIES.map((c) => <option key={c} value={c}>{c}</option>)}
             </select>
           </Field>
-          <Field label="Location"><Input aria-label="Location" placeholder="Suburb, city" value={draft.location} onChange={(e) => set({ location: e.target.value })} /></Field>
+          <Field label="Location"><Input aria-label="Location" placeholder="Street address or landmark" value={draft.location} onChange={(e) => set({ location: e.target.value })} /></Field>
+          <Field label="Suburb"><Input aria-label="Suburb" placeholder="e.g. Fitzroy" value={draft.suburb} onChange={(e) => set({ suburb: e.target.value })} /></Field>
           <Field label="Price"><Input aria-label="Price" type="number" min={0} step="0.01" value={draft.price} onChange={(e) => set({ price: e.target.value })} /></Field>
-          <Field label="Per"><Input aria-label="Price unit" placeholder="night, hour, month, fixed" value={draft.price_unit} onChange={(e) => set({ price_unit: e.target.value })} /></Field>
+          <Field label="Price period">
+            <select aria-label="Price period" value={draft.price_unit} onChange={(e) => set({ price_unit: e.target.value as PriceUnit })} className="w-full rounded-[var(--radius-sm)] border border-[var(--line-strong)] bg-[var(--panel-strong)] px-3 py-2 text-sm text-[var(--ink)]">
+              {PRICE_UNITS.map((u) => <option key={u.value} value={u.value}>{u.label}</option>)}
+            </select>
+          </Field>
+        </div>
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
+          <Field label="Bedrooms"><Input aria-label="Bedrooms" type="number" min={0} step={1} inputMode="numeric" value={draft.bedrooms} onChange={(e) => set({ bedrooms: e.target.value })} /></Field>
+          <Field label="Bathrooms"><Input aria-label="Bathrooms" type="number" min={0} step={1} inputMode="numeric" value={draft.bathrooms} onChange={(e) => set({ bathrooms: e.target.value })} /></Field>
+          <Field label="Car spaces"><Input aria-label="Car spaces" type="number" min={0} step={1} inputMode="numeric" value={draft.car_spaces} onChange={(e) => set({ car_spaces: e.target.value })} /></Field>
         </div>
         <Field label="Photos (up to 6)">
           <input aria-label="Photos" type="file" accept="image/*" multiple onChange={(e) => addPhotos(e.target.files)} className="block text-sm text-[var(--muted)]" />

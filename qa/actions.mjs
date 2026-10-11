@@ -73,7 +73,7 @@ for (const t of Object.values(TOOLS).filter((t) => t.requires_auth === false)) {
 }
 
 // --- Listings -------------------------------------------------------------------------------
-ok(call('create_listing', OWNER, { id: L, owner_name: 'Olive', title: 'Sunny room', category: 'room', price: 40, price_unit: 'night' }) === 1, 'owner publishes a listing')
+ok(call('create_listing', OWNER, { id: L, owner_name: 'Olive', title: 'Sunny room', category: 'room', price: 40, price_unit: 'per_week' }) === 1, 'owner publishes a listing')
 ok(call('create_listing', OWNER, { id: L, owner_name: 'Olive', title: 'Sunny room again' }) === 0, 'create_listing is idempotent by client id')
 ok(call('update_listing', STRANGER, { id: L, title: 'Hijacked' }) === 0, 'a stranger cannot edit it')
 ok(call('set_listing_status', STRANGER, { id: L, status: 'archived' }) === 0, 'a stranger cannot archive it')
@@ -151,6 +151,45 @@ ok(call('block_user', SEEKER, { blocked_id: SEEKER }) === 0 && call('report_user
 ok(call('add_favorite', SEEKER, { listing_id: L }) === 1 && call('add_favorite', SEEKER, { listing_id: L }) === 0, 'favourites are idempotent')
 ok(call('add_favorite', SEEKER, { listing_id: 'nope' }) === 0, 'cannot favourite a listing that does not exist')
 ok(call('remove_favorite', STRANGER, { listing_id: L }) === 0, 'a stranger cannot remove someone else’s favourite')
+
+// --- Property fields (migration 0008) -------------------------------------------------------
+ok(call('create_listing', OWNER, { id: 'p-x1', owner_name: 'Olive', title: 'Unit', price_unit: 'night' }) === 0, 'create refuses a price_unit other than per_week or sale')
+ok(call('create_listing', OWNER, { id: 'p-x2', owner_name: 'Olive', title: 'Unit', bedrooms: -1 }) === 0, 'create refuses negative bedrooms')
+ok(call('create_listing', OWNER, { id: 'p-x3', owner_name: 'Olive', title: 'Unit', bathrooms: 1.5 }) === 0, 'create refuses fractional bathrooms')
+ok(call('create_listing', OWNER, { id: 'p-x4', owner_name: 'Olive', title: 'Unit', car_spaces: -2 }) === 0, 'create refuses negative car spaces')
+ok(call('create_listing', OWNER, { id: 'p-x5', owner_name: 'Olive', title: 'Unit', price: -10 }) === 0, 'create refuses a negative price')
+ok(db.prepare("SELECT COUNT(*) AS n FROM listings WHERE id LIKE 'p-x%'").get().n === 0, 'refused creates leave no rows behind')
+
+ok(call('create_listing', OWNER, { id: 'p-flat', owner_name: 'Olive', title: 'Fitzroy flat', category: 'apartment', suburb: 'Fitzroy', location: 'Fitzroy, Melbourne', price: 650, price_unit: 'per_week', bedrooms: 2, bathrooms: 1, car_spaces: 0 }) === 1, 'owner lists a rental with property fields')
+ok(call('update_listing', STRANGER, { id: 'p-flat', title: 'Fitzroy flat', bedrooms: 9 }) === 0, 'a stranger cannot change the property fields')
+ok(call('update_listing', OWNER, { id: 'p-flat', title: 'Fitzroy flat', price_unit: 'night', bedrooms: 2 }) === 0, 'update refuses a price_unit other than per_week or sale')
+ok(call('update_listing', OWNER, { id: 'p-flat', title: 'Fitzroy flat', bedrooms: -3 }) === 0, 'update refuses negative bedrooms')
+ok(call('update_listing', OWNER, { id: 'p-flat', title: 'Fitzroy flat', bathrooms: 2.5 }) === 0, 'update refuses fractional bathrooms')
+ok(call('update_listing', OWNER, { id: 'p-flat', title: 'Fitzroy flat', price: -1 }) === 0, 'update refuses a negative price')
+ok(call('update_listing', OWNER, { id: 'p-flat', title: 'Fitzroy flat', bedrooms: 3, bathrooms: 1, car_spaces: 1, price: 680, suburb: 'Fitzroy North' }) === 1, 'owner updates the property fields')
+ok(call('get_listing', null, { id: 'p-flat' })[0]?.bedrooms === 3 && call('get_listing', null, { id: 'p-flat' })[0]?.suburb === 'Fitzroy North', 'the public sees the updated fields')
+ok(call('list_my_listings', OWNER).find((row) => row.id === 'p-flat')?.car_spaces === 1, 'the owner list carries the property fields')
+
+db.prepare("INSERT INTO listings (id, owner_id, owner_name, status, title, description, price, price_unit, created_at, updated_at) VALUES ('legacy-1', ?, 'Olive', 'active', 'Old ad', '', 40, 'night', 1, 1)").run(OWNER)
+const [legacy] = call('get_listing', null, { id: 'legacy-1' })
+ok(legacy?.price_unit === 'night' && legacy.bedrooms === null && legacy.suburb === '', 'a legacy listing keeps its free-text unit and reads back with empty property fields')
+
+call('create_listing', OWNER, { id: 'p-b', owner_name: 'Olive', title: 'Fitzroy studio', suburb: 'Fitzroy', price: 450000, price_unit: 'sale', bedrooms: 1 })
+call('create_listing', OWNER, { id: 'p-c', owner_name: 'Olive', title: 'Brunswick share', suburb: 'Brunswick', price: 300, price_unit: 'per_week' })
+call('create_listing', OWNER, { id: 'p-d', owner_name: 'Olive', title: 'Richmond home', suburb: 'Richmond', price: 1250000, price_unit: 'sale', bedrooms: 4, bathrooms: 2, car_spaces: 2 })
+const propertyIds = (rows) => rows.map((row) => row.id).filter((id) => id.startsWith('p-')).sort()
+const browseProperties = (params) => propertyIds(call('list_listings', null, params))
+ok(browseProperties({}).join() === 'p-b,p-c,p-d,p-flat', 'browse without filters returns every property listing')
+ok(browseProperties({ suburb: 'FITZ' }).join() === 'p-b,p-flat', 'suburb filter is a case-insensitive substring match')
+ok(browseProperties({ price_unit: 'sale' }).join() === 'p-b,p-d', 'rent-versus-sale filter selects sale listings')
+ok(browseProperties({ price_unit: 'per_week' }).join() === 'p-c,p-flat', 'rent-versus-sale filter selects weekly rentals')
+ok(browseProperties({ min_bedrooms: 2 }).join() === 'p-d,p-flat', 'minimum bedrooms excludes smaller and unknown counts')
+ok(browseProperties({ min_price: 600000 }).join() === 'p-d', 'minimum price applies to sale listings')
+ok(browseProperties({ max_price: 500 }).join() === 'p-c', 'maximum price applies to rentals')
+ok(browseProperties({ suburb: 'Richmond', price_unit: 'sale', min_bedrooms: 3 }).join() === 'p-d', 'property filters compose')
+ok(browseProperties({ suburb: 'Nowhere' }).length === 0, 'a suburb with no listings returns an empty page')
+ok(call('search_listings', null, { q: 'home', suburb: 'Richmond' }).map((row) => row.id).join() === 'p-d', 'text search composes with the suburb filter')
+ok(call('list_my_favorites', SEEKER).some((row) => row.id === L && row.suburb === ''), 'saved listings carry the property fields')
 
 console.log(failures ? `\n${failures} failing` : '\nall passing')
 process.exit(failures ? 1 : 0)

@@ -27,6 +27,10 @@
     {
       "name": "0007_listings_public_keyset",
       "sql": "CREATE INDEX IF NOT EXISTS idx_listings_public_keyset ON listings (status, created_at DESC, id DESC)"
+    },
+    {
+      "name": "0008_property_fields",
+      "sql": "ALTER TABLE listings ADD COLUMN bedrooms INTEGER; ALTER TABLE listings ADD COLUMN bathrooms INTEGER; ALTER TABLE listings ADD COLUMN car_spaces INTEGER; ALTER TABLE listings ADD COLUMN suburb TEXT NOT NULL DEFAULT ''"
     }
   ]
 }
